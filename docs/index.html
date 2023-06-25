@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="SwaggerUI" />
+  <title>短縮URL API 仕様書</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.1.0/swagger-ui.css" />
+  <!-- CSS only -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+  <style>
+    .text-white {
+      color: white;
+    }
+
+  </style>
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-light" style="background-color: #32373f;">
+    <div class="container-fluid">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#invoiceNav"
+        aria-controls="invoiceNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="invoiceNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link text-white" href="#api">api</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-white" href="#main">Main service</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5.1.0/swagger-ui-bundle.js" crossorigin></script>
+  <script>
+    const loadOpenAPI = (hash) => {
+      window.ui = SwaggerUIBundle({
+        url: `/swagger/${hash}`,
+        dom_id: '#swagger-ui',
+      });
+    }
+    let worker
+    const sendInit = () => {
+      if (worker.state === "activated") {
+        worker.postMessage('init')
+      }
+    };
+    navigator.serviceWorker.addEventListener('message', (e) => {
+      const { init } = e.data
+      if (!init) {
+        sendInit();
+      } else {
+        loadOpenAPI('api')
+      }
+    });
+    (async function main() {
+      const registration = await navigator.serviceWorker.register('sw.js');
+      if (registration) {
+        registration.update();
+      }
+      if (registration.installing) {
+        worker = registration.installing;
+      } else if (registration.waiting) {
+        worker = registration.waiting
+      } else if (registration.active) {
+        worker = registration.active
+      }
+      if (worker) {
+        worker.addEventListener("statechange", (e) => {
+          if (e.target.state === "activated") {
+            sendInit()
+          }
+        });
+        sendInit()
+      }
+    }());
+
+    window.addEventListener("hashchange", (e) => {
+      const hash = location.hash.substring(1)
+      if (hash === "" || hash === "#") return
+      loadOpenAPI(hash)
+    })
+    window.addEventListener("DOMContentLoaded", () => {
+      if (location.hash === "" || location.hash === "#") {
+        location.hash = "#api"
+      } else {
+        loadOpenAPI(location.hash.substring(1))
+      }
+    })
+
+  </script>
+</body>
+
+</html>
